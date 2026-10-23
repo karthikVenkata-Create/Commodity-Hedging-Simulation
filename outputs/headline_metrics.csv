@@ -1,0 +1,16 @@
+,value
+rounds_settled,7.0
+total_hedged_M,74.6955
+total_unhedged_M,78.33
+cost_of_hedging_M,3.6345
+cost_pct_of_unhedged,4.6399846801991576
+std_hedged_M,3.693828945079916
+std_unhedged_M,5.30773290317331
+vol_reduction_pct,30.40665360399911
+min_hedged_M,6.7675
+min_unhedged_M,5.65
+hedged_rounds_below_bankruptcy,0.0
+unhedged_rounds_below_bankruptcy,0.0
+hedged_rounds_clearing_hurdle,0.0
+unhedged_rounds_clearing_hurdle,0.0
+rounds_with_stated_lines,5.0
