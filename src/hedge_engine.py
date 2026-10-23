@@ -81,61 +81,6 @@ def headline(s):
     }
 
 
-def _solve_spot(row, target, lo=0.0, hi=1000.0):
-    """Lowest spot at which this round's position earns at least `target` (bisection).
-    Revenue is non-decreasing in spot for every position in the game (hedge ratio <= 100%)."""
-    if hedged_revenue(row, lo) >= target:
-        return lo
-    if hedged_revenue(row, hi) < target:
-        return np.nan  # unreachable: the book caps revenue below target
-    for _ in range(100):
-        mid = (lo + hi) / 2
-        if hedged_revenue(row, mid) >= target:
-            hi = mid
-        else:
-            lo = mid
-    return hi
-
-
-def survival_map(s):
-    """For each round with stated lines: the spot price that would have pushed the
-    book into bankruptcy, and the spot it needed to fund the investment, hedged vs unhedged.
-    This is the ex-ante view - it uses only what I knew when I placed the trade."""
-    rows = []
-    for _, r in s.dropna(subset=["bankruptcy_line"]).iterrows():
-        floor_rev = hedged_revenue(r, 0.0)  # revenue if spot went to zero
-        cap_rev = hedged_revenue(r, 1000.0)
-        rows.append({
-            "round": int(r["round"]),
-            "realized_spot": r["spot"],
-            "bankrupt_below_spot_hedged": _solve_spot(r, r["bankruptcy_line"]),
-            "bankrupt_below_spot_unhedged": r["bankruptcy_line"] / UNITS,
-            "hurdle_spot_hedged": _solve_spot(r, r["investment_hurdle"]),
-            "hurdle_spot_unhedged": r["investment_hurdle"] / UNITS,
-            "revenue_if_spot_zero_M": floor_rev / 1e6,
-            "max_revenue_M": cap_rev / 1e6 if r["collar_qty"] > 0 and r["float_qty"] == 0 else np.nan,
-        })
-    return pd.DataFrame(rows)
-
-
-def ratio_sweep(s, ratios=np.linspace(0, 1, 11)):
-    """Hindsight check on sizing: re-run each swap-only-or-mixed round with the same
-    instruments scaled to a different total hedge ratio, at the realized spot.
-    Keeps the swap/collar mix the same; only the hedged share changes."""
-    rows = []
-    for _, r in s.iterrows():
-        hedged_qty = r["swap_qty"] + r["collar_qty"]
-        for k in ratios:
-            scaled = r.copy()
-            if hedged_qty > 0:
-                scale = (k * UNITS) / hedged_qty
-                scaled["swap_qty"] = r["swap_qty"] * scale
-                scaled["collar_qty"] = r["collar_qty"] * scale
-            rows.append({"round": int(r["round"]), "hedge_ratio": round(k, 2),
-                         "revenue_M": float(hedged_revenue(scaled, r["spot"])) / 1e6})
-    return pd.DataFrame(rows)
-
-
 def main():
     OUT.mkdir(exist_ok=True)
     s = settle(load_rounds())
@@ -150,15 +95,11 @@ def main():
 
     h = headline(s)
     pd.Series(h).to_csv(OUT / "headline_metrics.csv", header=["value"])
-    sm = survival_map(s)
-    sm.to_csv(OUT / "survival_map.csv", index=False)
-    ratio_sweep(s).to_csv(OUT / "hedge_ratio_sweep.csv", index=False)
 
     print("All 7 rounds recompute to the memo totals.\n")
     for k, v in h.items():
         print(f"{k:34s} {v:,.2f}" if isinstance(v, float) else f"{k:34s} {v}")
-    print("\nSurvival map:\n", sm.round(2).to_string(index=False))
-    return s, h, sm
+    return s, h
 
 
 if __name__ == "__main__":

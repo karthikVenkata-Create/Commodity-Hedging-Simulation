@@ -1,6 +1,0 @@
-round,realized_spot,bankrupt_below_spot_hedged,bankrupt_below_spot_unhedged,hurdle_spot_hedged,hurdle_spot_unhedged,revenue_if_spot_zero_M,max_revenue_M
-2,140.0,0.0,50.0,202.5,150.0,6.9,
-3,84.0,0.0,50.0,185.0,150.0,9.45,
-4,56.5,0.0,40.0,147.5,110.0,5.1,
-5,83.8,11.99999999999997,45.0,331.9999999999999,95.0,4.38,
-7,74.0,0.0,50.0,185.0,200.0,16.3,

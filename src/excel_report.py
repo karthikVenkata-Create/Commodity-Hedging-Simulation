@@ -142,7 +142,7 @@ def build():
     put(ws, "I20", '=SUMPRODUCT((P5:P11<>"")*(I5:I11<P5:P11))', "0")
     put(ws, "A21", "Rounds clearing the hurdle, hedged")
     put(ws, "I21", '=SUMPRODUCT((Q5:Q11<>"")*(L5:L11>=Q5:Q11))', "0")
-    ws.freeze_panes = "B5"
+    ws.freeze_panes = "A5"
 
     # ---------------- Collar Pricing ----------------
     wc = wb.create_sheet("Collar Pricing")
@@ -190,7 +190,7 @@ def build():
     for k, txt in enumerate(notes, n + 3):
         wc[f"A{k}"] = txt
         wc[f"A{k}"].font = f(color="555555")
-    wc.freeze_panes = "B5"
+    wc.freeze_panes = "A5"
 
     # ---------------- Stress Test ----------------
     wt = wb.create_sheet("Stress Test")
@@ -226,7 +226,7 @@ def build():
     wt[f"A{last+3}"] = ("Blank probability cells = no bankruptcy line or hurdle stated in that round's memo. "
                         "Hedged revenue never falls below its floor, so 'worst case' is the floor where one exists.")
     wt[f"A{last+3}"].font = f(color="555555")
-    wt.freeze_panes = "B5"
+    wt.freeze_panes = "A5"
 
     # ---------------- Vol Sensitivity ----------------
     wv = wb.create_sheet("Vol Sensitivity")
