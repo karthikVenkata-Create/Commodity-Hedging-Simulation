@@ -4,3 +4,6 @@ scipy
 matplotlib
 openpyxl
 pytest
+anthropic
+python-dotenv
+mcp>=2

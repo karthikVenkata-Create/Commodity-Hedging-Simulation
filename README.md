@@ -35,6 +35,27 @@ Looking only at these results, the unhedged book never crossed a bankruptcy line
 
 At the volatility this game actually had, the hedges were doing real work: they turned a one-in-four chance of a $20M penalty into roughly one in a hundred. What I got wrong was the other side of the ledger. My strikes and sizing gave away the upside the firm needed to fund the investment, in every round but the last. Strike placement mattered more than hedge ratio. If I played again, I would set collar calls at or above the hurdle price, so the upside I give up is upside the firm doesn't need, and I would size each round from the bankruptcy and hurdle probabilities instead of defaulting to 60 to 70% hedged.
 
+## AI treasury analyst (Claude)
+
+On top of the pipeline sits an AI analyst built on the Claude API. You ask it a question in plain English, like *"what if I had put the Round 5 collar call at $95 instead of $75?"*, and Claude works out which of my functions to run, runs them, and writes up the answer. The math never happens inside the model. Every number comes from the same settlement, Monte Carlo and Black-76 code the tests and the Excel report use.
+
+```
+python src/ai_analyst.py ask "Was the $75 call in Round 5 a mistake?"
+  -> memo_search({"query": "why collar 75 call", "round": 5})
+  -> evaluate_hedge({"round": 5})
+  -> evaluate_hedge({"round": 5, "call_strike": 95})
+```
+
+**What it's built from**
+
+- **Tool use.** Claude gets five tools: `get_round`, `portfolio_summary`, `evaluate_hedge` (settle and stress-test any alternative book), `price_collar` (Black-76) and `memo_search`. Each is a thin wrapper in [`src/ai_tools.py`](src/ai_tools.py) around code that was already here. Bad inputs, like a put strike above the call, go back to Claude as an error message so it can fix the call.
+- **Agent loop.** [`src/ai_analyst.py`](src/ai_analyst.py) sends the question, runs whatever tools Claude asks for, sends the results back, and repeats until it has an answer. `review` mode has it go through a round on its own: pull my position, find my reasoning in the memo, stress-test the book, then pick and test up to three alternatives, each for a stated reason.
+- **RAG over my decision memos.** The eight memos I wrote during the game are in [`memos/`](memos/). [`src/memo_search.py`](src/memo_search.py) splits them into sections and ranks them with BM25, so the analyst quotes what I actually wrote at the time instead of guessing at my reasoning.
+- **Guardrail.** After every answer, each dollar figure and percentage is checked against the numbers the tools returned, at the precision it was written ($7.0M has to be within $50K of a real number). Anything that doesn't trace back is sent to Claude once to fix; if it's still there, the answer prints with a warning. Saved answers end with an audit trail of every tool call.
+- **MCP server.** [`src/mcp_server.py`](src/mcp_server.py) exposes the same five tools over the Model Context Protocol, so Claude Desktop can use the hedging engine directly.
+
+The AI layer has its own tests (`tests/test_ai.py`) that run without an API key: the tools have to agree with the engine to the dollar, the memo search has to find the right section, and the agent loop is played through a fake client to check that tool errors and the guardrail behave.
+
 ## How it works
 
 ```
@@ -45,6 +66,13 @@ src/stress_test.py       10,000-scenario Monte Carlo per round, VaR / ES / proba
 src/excel_report.py      builds outputs/hedging_audit_report.xlsx with openpyxl
 src/charts.py            the two charts above
 tests/test_engine.py     memo reconciliation, put-call parity, solver, Greeks vs finite differences
+
+memos/                   my eight decision memos, Oct 13 to Dec 2, 2025
+src/ai_tools.py          the five tools Claude can call, and their schemas
+src/memo_search.py       BM25 search over the memos
+src/ai_analyst.py        agent loop, guardrail, ask / review / chat commands
+src/mcp_server.py        the same tools as an MCP server
+tests/test_ai.py         tools vs engine, memo search, agent loop with a fake client
 ```
 
 The Settlement and Collar Pricing tabs are live Excel formulas, not pasted values. Change a strike or the risk-free rate and the workbook recomputes. The zero-cost call strikes are solved in Python and then repriced in Excel, so a reviewer can see the solver's answer checked by an independent formula. Blue cells are inputs, black are formulas, and green are links between tabs.
@@ -65,6 +93,28 @@ python src/stress_test.py      # Monte Carlo summary in the terminal
 python src/excel_report.py     # writes outputs/hedging_audit_report.xlsx
 python src/charts.py
 pytest -q
+```
+
+To use the AI analyst (Python 3.10+), copy `.env.example` to `.env` and put your Anthropic API key in it. `.env` is in `.gitignore`, so the key never gets committed. A question costs a few cents.
+
+```
+python src/ai_analyst.py ask "What if I had hedged only 40% in Round 4?" --save
+python src/ai_analyst.py review --round 5     # writes outputs/ai_reviews/round_5.md
+python src/ai_analyst.py review --all
+python src/ai_analyst.py chat
+```
+
+To use the tools from Claude Desktop instead, add this to its config (Settings > Developer > Edit Config) with your own paths, then restart it:
+
+```json
+{
+  "mcpServers": {
+    "hedging-analyst": {
+      "command": "/path/to/python3",
+      "args": ["/path/to/Commodity-Hedging-Simulation/src/mcp_server.py"]
+    }
+  }
+}
 ```
 
 ## Notes on the data and model
