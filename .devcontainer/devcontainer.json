@@ -1,0 +1,18 @@
+{
+  "name": "Hedging analyst",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "postCreateCommand": "pip install -r requirements.txt",
+  "postAttachCommand": "streamlit run streamlit_app.py --server.headless true --server.enableCORS false --server.enableXsrfProtection false",
+  "forwardPorts": [8501],
+  "portsAttributes": {
+    "8501": { "label": "Chat", "onAutoForward": "openPreview" }
+  },
+  "secrets": {
+    "ANTHROPIC_API_KEY": {
+      "description": "Your Anthropic API key, used by the chat. Stored by GitHub, never committed."
+    }
+  },
+  "customizations": {
+    "vscode": { "extensions": ["ms-python.python"] }
+  }
+}

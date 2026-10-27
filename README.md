@@ -148,6 +148,8 @@ streamlit run streamlit_app.py
 
 The chat page shows each tool call as Claude makes it, prints the guardrail result under every answer, and caps use at 6 questions per visit and 150 a day, so a public link can't run up the API bill. When it's hosted on Streamlit Community Cloud, the key goes in the app's Secrets (`ANTHROPIC_API_KEY = "..."`), never in the repo.
 
+Or run it without installing anything: on the repo page, click **Code > Codespaces > Create codespace on main**. It installs the requirements and opens the chat in a preview tab. GitHub asks for an `ANTHROPIC_API_KEY` secret the first time.
+
 To use the tools from Claude Desktop instead, add this to its config (Settings > Developer > Edit Config) with your own paths, then restart it:
 
 ```json
