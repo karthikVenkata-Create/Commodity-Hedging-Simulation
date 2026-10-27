@@ -5,6 +5,10 @@
 
 [![Chat with the AI analyst](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://karthik-hedging-analyst.streamlit.app) **[Chat with the AI treasury analyst →](https://karthik-hedging-analyst.streamlit.app)**
 
+<a href="https://karthik-hedging-analyst.streamlit.app"><img src="images/chat_landing.png" width="49%" alt="The chat app's start page: game totals and the first two guided questions"></a> <a href="https://karthik-hedging-analyst.streamlit.app"><img src="images/chat_round1.png" width="49%" alt="A real answer to 'Walk me through Round 1', with the three tool calls Claude made"></a>
+
+*Left: the start page, which walks a visitor from "what is this?" to the harder questions. Right: a real answer from the live app, with the tool calls Claude made to get there.*
+
 In Fall 2025 I played an eight-round hedging game at UIC as the risk manager of a producer selling 100,000 units of a commodity each round. Every week I decided how much output to lock in with fixed-price swaps, how much to protect with zero-cost collars (long put, short call), and how much to leave floating. If revenue fell below the bankruptcy line the firm took a $20M penalty, and if it cleared the investment hurdle it could fund a positive-NPV project.
 
 This repo rebuilds the game from my original weekly decision memos and stress-tests every position I took. A Python pipeline settles all seven rounds and checks each one against the number I wrote at the time. It then prices my collars with Black-76, runs each round's book through 10,000 simulated settlement prices, and exports everything to a multi-tab Excel audit report.
