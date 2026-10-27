@@ -106,7 +106,9 @@ src/ai_tools.py          the five tools Claude can call, and their schemas
 src/memo_search.py       BM25 search over the memos
 src/ai_analyst.py        agent loop, guardrail, ask / review / chat commands
 src/mcp_server.py        the same tools as an MCP server
+streamlit_app.py         chat page over the same agent
 tests/test_ai.py         tools vs engine, memo search, agent loop with a fake client
+tests/test_app.py        the chat page, driven by Streamlit's test harness and a fake client
 ```
 
 The Settlement and Collar Pricing tabs are live Excel formulas, not pasted values. Change a strike or the risk-free rate and the workbook recomputes. The zero-cost call strikes are solved in Python and then repriced in Excel, so a reviewer can see the solver's answer checked by an independent formula. Blue cells are inputs, black are formulas, and green are links between tabs.
@@ -137,6 +139,14 @@ python src/ai_analyst.py review --round 5     # writes outputs/ai_reviews/round_
 python src/ai_analyst.py review --all
 python src/ai_analyst.py chat
 ```
+
+To chat with it in the browser instead of the terminal:
+
+```
+streamlit run streamlit_app.py
+```
+
+The chat page shows each tool call as Claude makes it, prints the guardrail result under every answer, and caps use at 6 questions per visit and 150 a day, so a public link can't run up the API bill. When it's hosted on Streamlit Community Cloud, the key goes in the app's Secrets (`ANTHROPIC_API_KEY = "..."`), never in the repo.
 
 To use the tools from Claude Desktop instead, add this to its config (Settings > Developer > Edit Config) with your own paths, then restart it:
 
