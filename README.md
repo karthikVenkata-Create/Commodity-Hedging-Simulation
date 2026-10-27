@@ -3,17 +3,17 @@
 **Karthik Bommisetty** | UIC MBA (Finance) + MS Business Analytics
 [LinkedIn](https://www.linkedin.com/in/karthik-bommisetty) · [Portfolio](https://karthikvenkata-create.github.io)
 
-[![Chat with the AI analyst](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://karthik-hedging-analyst.streamlit.app) **[Chat with the AI treasury analyst →](https://karthik-hedging-analyst.streamlit.app)**
+[![Live chat app](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://karthik-hedging-analyst.streamlit.app) **[Live chat app →](https://karthik-hedging-analyst.streamlit.app)**
 
 <a href="https://karthik-hedging-analyst.streamlit.app"><img src="images/chat_landing.png" width="49%" alt="The chat app's start page: game totals and the first two guided questions"></a> <a href="https://karthik-hedging-analyst.streamlit.app"><img src="images/chat_round1.png" width="49%" alt="A real answer to 'Walk me through Round 1', with the three tool calls Claude made"></a>
 
-*Left: the start page, which walks a visitor from "what is this?" to the harder questions. Right: a real answer from the live app, with the tool calls Claude made to get there.*
+*Left: the start page, which goes from "what is this?" to the harder questions. Right: a real answer from the live app, with the tool calls Claude made to get there.*
 
 In Fall 2025 I played an eight-round hedging game at UIC as the risk manager of a producer selling 100,000 units of a commodity each round. Every week I decided how much output to lock in with fixed-price swaps, how much to protect with zero-cost collars (long put, short call), and how much to leave floating. If revenue fell below the bankruptcy line the firm took a $20M penalty, and if it cleared the investment hurdle it could fund a positive-NPV project.
 
 This repo rebuilds the game from my original weekly decision memos and stress-tests every position I took. A Python pipeline settles all seven rounds and checks each one against the number I wrote at the time. It then prices my collars with Black-76, runs each round's book through 10,000 simulated settlement prices, and exports everything to a multi-tab Excel audit report.
 
-On top of the pipeline sits an **AI treasury analyst built on the Claude API**. It reviews each round the way a risk desk would: it pulls my position, quotes my reasoning from the original memo, stress-tests the book, and picks and tests its own alternative hedges, with every number coming from my code rather than the model. [Try it in the browser](https://karthik-hedging-analyst.streamlit.app) or [read how it works](#ai-treasury-analyst-claude).
+On top of the pipeline sits an **AI treasury analyst built on the Claude API**. It reviews each round the way a risk desk would: it pulls my position, quotes my reasoning from the original memo, stress-tests the book, and picks and tests its own alternative hedges, with every number coming from my code rather than the model. [Live chat app](https://karthik-hedging-analyst.streamlit.app) · [How it works](#ai-treasury-analyst-claude).
 
 **[Download the audit report](outputs/hedging_audit_report.xlsx)**: Summary, Assumptions, Settlement, Collar Pricing, Stress Test, Vol Sensitivity.
 **[Read the AI's round-by-round reviews](outputs/ai_reviews/)**.
@@ -46,7 +46,7 @@ At the volatility this game actually had, the hedges were doing real work: they 
 
 ## AI treasury analyst (Claude)
 
-On top of the pipeline sits an AI analyst built on the Claude API. You ask it a question in plain English, like *"what if I had put the Round 5 collar call at $95 instead of $75?"*, and Claude works out which of my functions to run, runs them, and writes up the answer. The math never happens inside the model. Every number comes from the same settlement, Monte Carlo and Black-76 code the tests and the Excel report use.
+On top of the pipeline I built an AI analyst on the Claude API. It takes a question in plain English, like *"what if I had put the Round 5 collar call at $95 instead of $75?"*, and Claude works out which of my functions to run, runs them, and writes up the answer. The math never happens inside the model. Every number comes from the same settlement, Monte Carlo and Black-76 code the tests and the Excel report use.
 
 ```mermaid
 flowchart LR
