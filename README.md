@@ -42,6 +42,18 @@ At the volatility this game actually had, the hedges were doing real work: they 
 
 On top of the pipeline sits an AI analyst built on the Claude API. You ask it a question in plain English, like *"what if I had put the Round 5 collar call at $95 instead of $75?"*, and Claude works out which of my functions to run, runs them, and writes up the answer. The math never happens inside the model. Every number comes from the same settlement, Monte Carlo and Black-76 code the tests and the Excel report use.
 
+```mermaid
+flowchart LR
+    Q["Question or<br/>'review Round 5'"] --> C["Claude<br/>(agent loop)"]
+    C -- "tool call" --> T["5 tools<br/>src/ai_tools.py"]
+    T --> E["My existing code:<br/>settlement · Monte Carlo ·<br/>Black-76 · memo search"]
+    E -- "numbers" --> C
+    C --> G{"Guardrail:<br/>every figure traced<br/>to a tool result?"}
+    G -- "no: fix once" --> C
+    G -- "yes" --> A["Answer + audit trail<br/>outputs/ai_reviews/"]
+    D["Claude Desktop"] -- "MCP<br/>src/mcp_server.py" --> T
+```
+
 Here is a real run. I asked whether the $75 call I sold in Round 5 was a mistake. Claude made seven tool calls on its own:
 
 ```
@@ -65,7 +77,7 @@ and concluded (excerpt, [full answer and audit trail](outputs/ai_transcripts/202
 
 - **Round 7:** the 20,000 units I left floating were the real gap. Hedging them too would have put a $20.5M floor under revenue and a 100% chance of clearing the $20M hurdle, for $22K less expected revenue.
 - **Round 5:** raising the collar call from $75 to $95 looks like +$214K of expected revenue if the new collar is free, but about +$2K once it is paid for at fair value.
-- **Round 4:** my memo sized the hedge against a "$5M minimum", while the round's bankruptcy line was $4M.
+- **Round 4:** my decision memo sized the hedge against a "$5M minimum", but my own result memo for that round lists the bankruptcy line as $4M. The hedge was still sound either way.
 - **Rounds 2 to 4:** each hedge removed the bankruptcy risk, but none of my memos weighed the investment hurdle, and the hedge cut the chance of clearing it by about 10 points each time.
 
 **What it's built from**
