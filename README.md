@@ -7,7 +7,10 @@ In Fall 2025 I played an eight-round hedging game at UIC as the risk manager of 
 
 This repo rebuilds the game from my original weekly decision memos and stress-tests every position I took. A Python pipeline settles all seven rounds and checks each one against the number I wrote at the time. It then prices my collars with Black-76, runs each round's book through 10,000 simulated settlement prices, and exports everything to a multi-tab Excel audit report.
 
+On top of the pipeline sits an **AI treasury analyst built on the Claude API**. It reviews each round the way a risk desk would: it pulls my position, quotes my reasoning from the original memo, stress-tests the book, and picks and tests its own alternative hedges, with every number coming from my code rather than the model. [More below](#ai-treasury-analyst-claude).
+
 **[Download the audit report](outputs/hedging_audit_report.xlsx)**: Summary, Assumptions, Settlement, Collar Pricing, Stress Test, Vol Sensitivity.
+**[Read the AI's round-by-round reviews](outputs/ai_reviews/)**.
 
 ## What actually happened
 
@@ -39,17 +42,36 @@ At the volatility this game actually had, the hedges were doing real work: they 
 
 On top of the pipeline sits an AI analyst built on the Claude API. You ask it a question in plain English, like *"what if I had put the Round 5 collar call at $95 instead of $75?"*, and Claude works out which of my functions to run, runs them, and writes up the answer. The math never happens inside the model. Every number comes from the same settlement, Monte Carlo and Black-76 code the tests and the Excel report use.
 
+Here is a real run. I asked whether the $75 call I sold in Round 5 was a mistake. Claude made seven tool calls on its own:
+
 ```
-python src/ai_analyst.py ask 'Was the $75 call in Round 5 a mistake?'
-  -> memo_search({"query": "why collar 75 call", "round": 5})
+python src/ai_analyst.py ask 'Was the $75 call in Round 5 a mistake?' --save
+  -> get_round({"round": 5})
+  -> memo_search({"query": "collar call strike 75", "round": 5, "top_k": 8})
   -> evaluate_hedge({"round": 5})
   -> evaluate_hedge({"round": 5, "call_strike": 95})
+  -> evaluate_hedge({"round": 5, "collar_qty": 30000})
+  -> evaluate_hedge({"round": 5, "collar_qty": 30000, "call_strike": 95})
+  -> price_collar({"round": 5, "put_strike": 45, "call_strike": 75})
 ```
+
+and concluded (excerpt, [full answer and audit trail](outputs/ai_transcripts/20261027-1356_was-the-75-call-in-round-5-a-mistake.md)):
+
+> **Short answer:** No, not a clear mistake. The $75 call cost Karthik $528K in hindsight, but the stress test shows it was a small decision. Its real weakness was that it gave up slightly more than it received.
+>
+> At fair value this collar [with a $95 call] was worth $145K to the hedger, which is $212K more than his actual collar. After paying that, expected revenue was only $1.7K above his actual book. [...] This is roughly a wash once priced fairly.
+
+**What the reviews found** ([all seven](outputs/ai_reviews/)):
+
+- **Round 7:** the 20,000 units I left floating were the real gap. Hedging them too would have put a $20.5M floor under revenue and a 100% chance of clearing the $20M hurdle, for $22K less expected revenue.
+- **Round 5:** raising the collar call from $75 to $95 looks like +$214K of expected revenue if the new collar is free, but about +$2K once it is paid for at fair value.
+- **Round 4:** my memo sized the hedge against a "$5M minimum", while the round's bankruptcy line was $4M.
+- **Rounds 2 to 4:** each hedge removed the bankruptcy risk, but none of my memos weighed the investment hurdle, and the hedge cut the chance of clearing it by about 10 points each time.
 
 **What it's built from**
 
 - **Tool use.** Claude gets five tools: `get_round`, `portfolio_summary`, `evaluate_hedge` (settle and stress-test any alternative book), `price_collar` (Black-76) and `memo_search`. Each is a thin wrapper in [`src/ai_tools.py`](src/ai_tools.py) around code that was already here. Bad inputs, like a put strike above the call, go back to Claude as an error message so it can fix the call.
-- **Agent loop.** [`src/ai_analyst.py`](src/ai_analyst.py) sends the question, runs whatever tools Claude asks for, sends the results back, and repeats until it has an answer. `review` mode has it go through a round on its own: pull my position, find my reasoning in the memo, stress-test the book, then pick and test up to three alternatives, each for a stated reason.
+- **Agent loop.** [`src/ai_analyst.py`](src/ai_analyst.py) sends the question, runs whatever tools Claude asks for, sends the results back, and repeats until it has an answer. `review` mode has it go through a round on its own: pull my position, find my reasoning in the memo, stress-test the book, then pick and test up to three alternatives, each for a stated reason. The tools enforce the game's rules (no collars before Round 5), and from Round 5 on they price any new collar at Black-76 fair value, since the game handed every collar out for free.
 - **RAG over my decision memos.** The eight memos I wrote during the game are in [`memos/`](memos/). [`src/memo_search.py`](src/memo_search.py) splits them into sections and ranks them with BM25, so the analyst quotes what I actually wrote at the time instead of guessing at my reasoning.
 - **Guardrail.** After every answer, each dollar figure and percentage is checked against the numbers the tools returned, at the precision it was written ($7.0M has to be within $50K of a real number). Anything that doesn't trace back is sent to Claude once to fix; if it's still there, the answer prints with a warning. Saved answers end with an audit trail of every tool call.
 - **MCP server.** [`src/mcp_server.py`](src/mcp_server.py) exposes the same five tools over the Model Context Protocol, so Claude Desktop can use the hedging engine directly.
