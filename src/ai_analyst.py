@@ -45,7 +45,8 @@ Rules:
 6. The game gave every collar for free. When an alternative changes collar strikes, report its collar_fair_value result and judge it after paying fair value, not as if the new collar were free.
 7. Rounds 1 and 6 had no stated bankruptcy line or hurdle. Say so instead of guessing.
 8. VaR and expected shortfall are at the 95% level; label them VaR95 and ES95.
-9. Write about Karthik in the third person ("Karthik", "his book"), never "you" or "I held". Write like a treasury analyst writing to a CFO: plain sentences, short paragraphs, specific numbers, no hype. Write money as $7.02M or $834K."""
+9. Write about Karthik in the third person ("Karthik", "his book"), never "you" or "I held". Write like a treasury analyst writing to a CFO: plain sentences, short paragraphs, specific numbers, no hype. Write money as $7.02M or $834K.
+10. For a question (not a review), lead with the direct answer and keep it under about 250 words. Give the key numbers, not every number; the reader can ask a follow-up. If someone asks what this project is, explain the game and what you can do in a few sentences without calling tools."""
 
 REVIEW_PROMPT = """Review Round {n} as a short treasury memo. Start directly with the first section heading, no title. Sections:
 
@@ -139,7 +140,7 @@ def _text(content):
     return "\n".join(b.text for b in content if b.type == "text").strip()
 
 
-def run_agent(client, messages, trace, max_tokens=2500, on_tool=None):
+def run_agent(client, messages, trace, max_tokens=4000, on_tool=None):
     """The tool-use loop. Mutates messages and trace; returns Claude's final text."""
     for _ in range(MAX_TOOL_ROUNDS):
         resp = client.messages.create(
@@ -150,6 +151,8 @@ def run_agent(client, messages, trace, max_tokens=2500, on_tool=None):
             messages=messages,
         )
         messages.append({"role": "assistant", "content": resp.content})
+        if resp.stop_reason == "max_tokens":
+            return _text(resp.content) + "\n\n(This answer hit the length limit and was cut off. Ask for the rest.)"
         if resp.stop_reason != "tool_use":
             return _text(resp.content)
 
@@ -171,7 +174,7 @@ def run_agent(client, messages, trace, max_tokens=2500, on_tool=None):
     return _text(resp.content) + "\n\n(Stopped: hit the limit of tool calls for one answer.)"
 
 
-def answer(client, messages, trace, question, max_tokens=2500, on_tool=None):
+def answer(client, messages, trace, question, max_tokens=4000, on_tool=None):
     """Ask, then run the guardrail. One automatic fix attempt if numbers don't trace back."""
     asked_so_far = " ".join(m["content"] for m in messages if m["role"] == "user" and isinstance(m["content"], str))
     messages.append({"role": "user", "content": question})

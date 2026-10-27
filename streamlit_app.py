@@ -85,11 +85,11 @@ st.caption(
 
 
 def show_tools(calls):
+    """One compact block listing every tool call, folded away by default."""
     if calls:
-        with st.expander(f"{len(calls)} tool calls"):
-            for c in calls:
-                st.code(f"{c['tool']}({json.dumps(c['input'])})" + ("   # error, sent back to Claude" if c["is_error"] else ""),
-                        language="python")
+        with st.expander(f"How it got there: {len(calls)} tool calls"):
+            st.code("\n".join(f"{c['tool']}({json.dumps(c['input'])})" + ("   # error, sent back to Claude" if c["is_error"] else "")
+                              for c in calls), language="python", wrap_lines=True)
 
 
 for m in state.chat:

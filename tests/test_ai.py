@@ -232,3 +232,9 @@ def test_round7_actual_collar_fair_value_matches_readme():
 
 def test_no_collar_pricing_before_round_5():
     assert "collar_fair_value" not in evaluate_hedge(3)
+
+
+def test_cut_off_answer_is_labelled():
+    client = FakeClient([([text("Round 5 settled at $7.02M and")], "max_tokens")])
+    out, _ = ai_analyst.answer(client, [], [], "?")
+    assert "cut off" in out
