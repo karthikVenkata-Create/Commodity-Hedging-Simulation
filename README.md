@@ -40,7 +40,7 @@ At the volatility this game actually had, the hedges were doing real work: they 
 On top of the pipeline sits an AI analyst built on the Claude API. You ask it a question in plain English, like *"what if I had put the Round 5 collar call at $95 instead of $75?"*, and Claude works out which of my functions to run, runs them, and writes up the answer. The math never happens inside the model. Every number comes from the same settlement, Monte Carlo and Black-76 code the tests and the Excel report use.
 
 ```
-python src/ai_analyst.py ask "Was the $75 call in Round 5 a mistake?"
+python src/ai_analyst.py ask 'Was the $75 call in Round 5 a mistake?'
   -> memo_search({"query": "why collar 75 call", "round": 5})
   -> evaluate_hedge({"round": 5})
   -> evaluate_hedge({"round": 5, "call_strike": 95})
