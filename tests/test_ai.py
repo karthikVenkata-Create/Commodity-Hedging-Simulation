@@ -66,7 +66,8 @@ def test_portfolio_summary_matches_readme():
 
 @pytest.mark.parametrize("name,args", [
     ("get_round", {"round": 9}),
-    ("evaluate_hedge", {"round": 2, "collar_qty": 20000}),          # no strikes to copy in round 2
+    ("evaluate_hedge", {"round": 2, "collar_qty": 20000, "put_strike": 100, "call_strike": 150}),  # no collars before round 5
+    ("price_collar", {"round": 1, "put_strike": 40, "call_strike": 60}),
     ("evaluate_hedge", {"round": 5, "swap_qty": 80000}),            # 80k swap + 60k collar > 100k
     ("evaluate_hedge", {"round": 5, "put_strike": 80}),             # put above the $75 call
     ("price_collar", {"round": 7, "put_strike": 250, "call_strike": 240}),
@@ -208,3 +209,8 @@ def test_review_writes_memo_with_audit_trail(tmp_path, monkeypatch):
     assert "Round 5 review" in md and "Audit trail" in md and "evaluate_hedge" in md
     assert "every dollar figure" in md
     assert np.isfinite(len(md))
+
+
+def test_swap_only_rounds_still_allow_swap_what_ifs():
+    e = evaluate_hedge(1, swap_qty=90000)
+    assert e["tested_position"]["swap_qty"] == 90000 and e["tested_position"]["float_qty"] == 10000

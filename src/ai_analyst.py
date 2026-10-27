@@ -41,8 +41,9 @@ Rules:
 2. Quote Karthik's reasoning only from memo_search results, and say which memo it is from.
 3. Separate hindsight from the decision. Settled revenue is what happened. The stress test is what the book looked like before the trade. Judge a decision mainly on the stress test.
 4. When you test alternatives, pick each one for a reason and say the reason. If the bankruptcy probability was high, test more protection. If hedging cut the chance of clearing the hurdle, test a collar call strike at or above the price the firm needed to clear the hurdle, or a smaller hedge. Test at most three alternatives per round.
-5. Rounds 1 and 6 had no stated bankruptcy line or hurdle. Say so instead of guessing.
-6. Write like a treasury analyst writing to a CFO: plain sentences, short paragraphs, specific numbers, no hype. Write money as $7.02M or $834K."""
+5. Rounds 1 to 4 offered only fixed-price swaps; collars were added in Round 5. In Rounds 1 to 4, test only different swap sizes.
+6. Rounds 1 and 6 had no stated bankruptcy line or hurdle. Say so instead of guessing.
+7. Write like a treasury analyst writing to a CFO: plain sentences, short paragraphs, specific numbers, no hype. Write money as $7.02M or $834K."""
 
 REVIEW_PROMPT = """Review Round {n} as a short treasury memo with these sections:
 
@@ -213,6 +214,11 @@ def save(path, title, question, text, trace, bad):
     return path
 
 
+def _plain(text):
+    """Terminals don't render markdown, so drop the bold markers there. Saved files keep them."""
+    return text.replace("**", "")
+
+
 def _show_tool(name, args, is_error):
     print(f"  -> {name}({json.dumps(dict(args))}){'  [error]' if is_error else ''}")
 
@@ -223,7 +229,7 @@ def cmd_ask(question, save_it=False, client=None):
     client = client or get_client()
     messages, trace = [], []
     text, bad = answer(client, messages, trace, question, on_tool=_show_tool)
-    print("\n" + text + "\n\n" + _guardrail_line(bad))
+    print("\n" + _plain(text) + "\n\n" + _guardrail_line(bad))
     if save_it:
         slug = re.sub(r"[^a-z0-9]+", "-", question.lower()).strip("-")[:50]
         p = save(TRANSCRIPT_DIR / f"{dt.datetime.now():%Y%m%d-%H%M}_{slug}.md", "AI analyst Q&A", question, text, trace, bad)
@@ -257,7 +263,7 @@ def cmd_chat(client=None):
             break
         if q:
             text, bad = answer(client, messages, trace, q, on_tool=_show_tool)
-            print("\n" + text + "\n\n" + _guardrail_line(bad) + "\n")
+            print("\n" + _plain(text) + "\n\n" + _guardrail_line(bad) + "\n")
 
 
 def main(argv=None):
@@ -268,7 +274,7 @@ def main(argv=None):
     a.add_argument("--save", action="store_true", help="save the answer and audit trail to outputs/ai_transcripts/")
     r = sub.add_parser("review", help="write a review memo for one or all rounds")
     g = r.add_mutually_exclusive_group(required=True)
-    g.add_argument("--round", type=int, choices=range(1, 8))
+    g.add_argument("--round", type=int, nargs="+", choices=range(1, 8), help="one or more rounds, e.g. --round 1 2 3 4")
     g.add_argument("--all", action="store_true")
     sub.add_parser("chat", help="interactive chat")
     args = p.parse_args(argv)
@@ -276,7 +282,7 @@ def main(argv=None):
     if args.cmd == "ask":
         cmd_ask(args.question, args.save)
     elif args.cmd == "review":
-        cmd_review(range(1, 8) if args.all else [args.round])
+        cmd_review(range(1, 8) if args.all else args.round)
     else:
         cmd_chat()
 

@@ -17,6 +17,11 @@ from pricing import collar, zero_cost_call
 from stress_test import PERIOD_YEARS, RISK_FREE, realized_vol, risk_metrics, simulate_spots
 
 
+# The game offered only fixed-price swaps in Rounds 1-4. Collars were added in Round 5
+# (my Round 5 memo is the first to use one), so alternatives must respect that.
+COLLAR_FIRST_ROUND = 5
+
+
 class ToolError(ValueError):
     """Bad input from the model. The message goes back to Claude so it can fix the call."""
 
@@ -73,6 +78,9 @@ def _alt_row(r, swap_qty, collar_qty, put_strike, call_strike):
     a = r.copy()
     a["swap_qty"] = r["swap_qty"] if swap_qty is None else swap_qty
     a["collar_qty"] = r["collar_qty"] if collar_qty is None else collar_qty
+    if a["collar_qty"] > 0 and r["round"] < COLLAR_FIRST_ROUND:
+        raise ToolError(f"collars weren't available until Round {COLLAR_FIRST_ROUND}; in Round {int(r['round'])} "
+                        "the only choices were how many units to swap and how many to leave floating")
     if a["collar_qty"] > 0:
         a["put_strike"] = put_strike if put_strike is not None else r["put_strike"]
         a["call_strike"] = call_strike if call_strike is not None else r["call_strike"]
@@ -181,6 +189,8 @@ def price_collar(round, put_strike, call_strike, sigma=None):
     """Black-76 fair value of a collar (long put, short call) at that round's forward,
     and the call strike that would have made it truly zero-cost."""
     r = _row(round)
+    if r["round"] < COLLAR_FIRST_ROUND:
+        raise ToolError(f"collars weren't available until Round {COLLAR_FIRST_ROUND}, so there is nothing to price in Round {round}")
     if not 0 < put_strike < call_strike:
         raise ToolError("need 0 < put_strike < call_strike")
     sig = _sigma(sigma)
@@ -228,7 +238,7 @@ TOOLS = [
     },
     {
         "name": "evaluate_hedge",
-        "description": "Settle and Monte Carlo stress-test (10,000 scenarios) a hedge book for one round. Call with only `round` to test my actual book. Pass swap_qty, collar_qty, put_strike or call_strike to test an alternative; anything left out keeps my actual value, and floating units are whatever is left of 100,000. Returns expected revenue, 5th percentile, VaR, expected shortfall, probability of falling below the bankruptcy line and of clearing the investment hurdle, for the tested book, my actual book and a fully unhedged book, plus the differences. Use this for any what-if question.",
+        "description": "Settle and Monte Carlo stress-test (10,000 scenarios) a hedge book for one round. Call with only `round` to test my actual book. Pass swap_qty, collar_qty, put_strike or call_strike to test an alternative; anything left out keeps my actual value, and floating units are whatever is left of 100,000. Collars only exist from Round 5; in Rounds 1-4 the only lever is swap_qty. Returns expected revenue, 5th percentile, VaR, expected shortfall, probability of falling below the bankruptcy line and of clearing the investment hurdle, for the tested book, my actual book and a fully unhedged book, plus the differences. Use this for any what-if question.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -244,7 +254,7 @@ TOOLS = [
     },
     {
         "name": "price_collar",
-        "description": "Black-76 fair value of a collar at a round's forward price: put and call premiums per unit, net cost, and the call strike that would make the collar exactly zero-cost. Use it to judge whether the game's 'free' collars were fair.",
+        "description": "Black-76 fair value of a collar at a round's forward price: put and call premiums per unit, net cost, and the call strike that would make the collar exactly zero-cost. Use it to judge whether the game's 'free' collars were fair. Only Rounds 5-7 had collars.",
         "input_schema": {
             "type": "object",
             "properties": {"round": ROUND, "put_strike": {"type": "number"}, "call_strike": {"type": "number"}, "sigma": SIGMA},
