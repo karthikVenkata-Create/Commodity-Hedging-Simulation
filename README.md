@@ -51,7 +51,7 @@ flowchart LR
     C --> G{"Guardrail:<br/>every figure traced<br/>to a tool result?"}
     G -- "no: fix once" --> C
     G -- "yes" --> A["Answer + audit trail<br/>outputs/ai_reviews/"]
-    D["Claude Desktop"] -- "MCP<br/>src/mcp_server.py" --> T
+    D["Claude Desktop<br/>via MCP server"] -.-> T
 ```
 
 Here is a real run. I asked whether the $75 call I sold in Round 5 was a mistake. Claude made seven tool calls on its own:
