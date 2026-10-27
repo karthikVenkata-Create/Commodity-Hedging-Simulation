@@ -158,7 +158,7 @@ def evaluate_hedge(round, swap_qty=None, collar_qty=None, put_strike=None, call_
         return {k: (None if x[k] is None or y[k] is None else _num(x[k] - y[k], 1 if k.endswith("pct") else 0))
                 for k in x}
 
-    return {
+    out = {
         "round": int(r["round"]),
         "tested_position": _position(a),
         "is_my_actual_position": bool(all(np.isclose(np.nan_to_num(a[k]), np.nan_to_num(r[k]))
@@ -182,6 +182,34 @@ def evaluate_hedge(round, swap_qty=None, collar_qty=None, put_strike=None, call_
             "var95_cut_vs_unhedged_pct": _num((1 - tested["var95"] / unhedged["var95"]) * 100, 1),
             "var95_cut_vs_my_actual_pct": _num((1 - tested["var95"] / actual["var95"]) * 100, 1) if actual["var95"] else None,
         },
+    }
+    if r["round"] >= COLLAR_FIRST_ROUND:
+        out["collar_fair_value"] = _collar_fair_value(a, r, sig, out["stress_test"]["tested_minus_my_actual"]["expected_revenue"])
+    return out
+
+
+def _collar_book_value(row, sig):
+    """Black-76 value of a book's whole collar position: (put - call) x units. Positive means the
+    hedger would have to pay that much to buy it at fair value."""
+    if row["collar_qty"] <= 0:
+        return 0.0
+    sig_annual = sig / np.sqrt(PERIOD_YEARS)
+    c = collar(row["swap_price"], row["put_strike"], row["call_strike"], sig_annual, RISK_FREE, PERIOD_YEARS)
+    return c["net_premium"] * row["collar_qty"]
+
+
+def _collar_fair_value(a, r, sig, exp_diff):
+    """The game gave every collar for free, so a stress test of a new strike gets that new collar
+    free too. This prices both collar books so the comparison can be made on fair terms."""
+    tested, actual = _collar_book_value(a, sig), _collar_book_value(r, sig)
+    extra = tested - actual
+    return {
+        "tested_collar_fair_cost": _num(tested),
+        "my_actual_collar_fair_cost": _num(actual),
+        "extra_cost_vs_my_actual_at_fair_value": _num(extra),
+        "expected_revenue_vs_my_actual_after_paying_fair_value": _num(exp_diff - extra),
+        "note": "The game priced every collar as free. Positive cost means the collar was worth that much to the hedger; "
+                "a different strike may not have been offered free, so compare alternatives after paying fair value.",
     }
 
 
@@ -238,7 +266,7 @@ TOOLS = [
     },
     {
         "name": "evaluate_hedge",
-        "description": "Settle and Monte Carlo stress-test (10,000 scenarios) a hedge book for one round. Call with only `round` to test my actual book. Pass swap_qty, collar_qty, put_strike or call_strike to test an alternative; anything left out keeps my actual value, and floating units are whatever is left of 100,000. Collars only exist from Round 5; in Rounds 1-4 the only lever is swap_qty. Returns expected revenue, 5th percentile, VaR, expected shortfall, probability of falling below the bankruptcy line and of clearing the investment hurdle, for the tested book, my actual book and a fully unhedged book, plus the differences. Use this for any what-if question.",
+        "description": "Settle and Monte Carlo stress-test (10,000 scenarios) a hedge book for one round. Call with only `round` to test my actual book. Pass swap_qty, collar_qty, put_strike or call_strike to test an alternative; anything left out keeps my actual value, and floating units are whatever is left of 100,000. Collars only exist from Round 5; in Rounds 1-4 the only lever is swap_qty. From Round 5 on it also returns collar_fair_value, which prices the tested and actual collars at Black-76 fair value, because the game handed out every collar for free. Returns expected revenue, 5th percentile, VaR, expected shortfall, probability of falling below the bankruptcy line and of clearing the investment hurdle, for the tested book, my actual book and a fully unhedged book, plus the differences. Use this for any what-if question.",
         "input_schema": {
             "type": "object",
             "properties": {

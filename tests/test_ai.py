@@ -214,3 +214,21 @@ def test_review_writes_memo_with_audit_trail(tmp_path, monkeypatch):
 def test_swap_only_rounds_still_allow_swap_what_ifs():
     e = evaluate_hedge(1, swap_qty=90000)
     assert e["tested_position"]["swap_qty"] == 90000 and e["tested_position"]["float_qty"] == 10000
+
+
+def test_collar_fair_value_removes_the_free_lunch():
+    # The simulation is risk-neutral and the collars are priced off the same forward and vol,
+    # so once the new collar is paid for at fair value, changing a strike should be close to a wash.
+    for strike in (85, 95, 120):
+        fv = evaluate_hedge(5, call_strike=strike)["collar_fair_value"]
+        assert fv["extra_cost_vs_my_actual_at_fair_value"] > 0
+        assert abs(fv["expected_revenue_vs_my_actual_after_paying_fair_value"]) < 20_000
+
+
+def test_round7_actual_collar_fair_value_matches_readme():
+    fv = evaluate_hedge(7)["collar_fair_value"]
+    assert fv["my_actual_collar_fair_cost"] == pytest.approx(165_000, rel=0.01)
+
+
+def test_no_collar_pricing_before_round_5():
+    assert "collar_fair_value" not in evaluate_hedge(3)

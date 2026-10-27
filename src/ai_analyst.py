@@ -42,13 +42,15 @@ Rules:
 3. Separate hindsight from the decision. Settled revenue is what happened. The stress test is what the book looked like before the trade. Judge a decision mainly on the stress test.
 4. When you test alternatives, pick each one for a reason and say the reason. If the bankruptcy probability was high, test more protection. If hedging cut the chance of clearing the hurdle, test a collar call strike at or above the price the firm needed to clear the hurdle, or a smaller hedge. Test at most three alternatives per round.
 5. Rounds 1 to 4 offered only fixed-price swaps; collars were added in Round 5. In Rounds 1 to 4, test only different swap sizes.
-6. Rounds 1 and 6 had no stated bankruptcy line or hurdle. Say so instead of guessing.
-7. Write like a treasury analyst writing to a CFO: plain sentences, short paragraphs, specific numbers, no hype. Write money as $7.02M or $834K."""
+6. The game gave every collar for free. When an alternative changes collar strikes, report its collar_fair_value result and judge it after paying fair value, not as if the new collar were free.
+7. Rounds 1 and 6 had no stated bankruptcy line or hurdle. Say so instead of guessing.
+8. VaR and expected shortfall are at the 95% level; label them VaR95 and ES95.
+9. Write about Karthik in the third person ("Karthik", "his book"), never "you" or "I held". Write like a treasury analyst writing to a CFO: plain sentences, short paragraphs, specific numbers, no hype. Write money as $7.02M or $834K."""
 
-REVIEW_PROMPT = """Review Round {n} as a short treasury memo with these sections:
+REVIEW_PROMPT = """Review Round {n} as a short treasury memo. Start directly with the first section heading, no title. Sections:
 
-**Position** - what I held.
-**My reasoning at the time** - from my memo.
+**Position** - what Karthik held.
+**Karthik's reasoning at the time** - from his memo.
 **What happened** - settled revenue vs fully unhedged, and against the bankruptcy line and hurdle.
 **Risk before the trade** - stress test of my actual book vs unhedged.
 **Alternatives tested** - up to three, each with why you chose it and what it changed.
@@ -179,7 +181,8 @@ def answer(client, messages, trace, question, max_tokens=2500, on_tool=None):
         messages.append({"role": "user", "content": (
             "Guardrail check: these figures in your answer don't match any tool result: "
             + ", ".join(bad)
-            + ". Get each one from a tool call or remove it, then give the full corrected answer.")})
+            + ". Get each one from a tool call or remove it. Then reply with the full corrected answer only, "
+              "written as if it were your first answer: no note about what changed.")})
         text = run_agent(client, messages, trace, max_tokens, on_tool)
         bad = unverified(text, trace, asked_so_far + " " + question)
     return text, bad
