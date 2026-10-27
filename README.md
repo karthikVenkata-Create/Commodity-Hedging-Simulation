@@ -3,11 +3,13 @@
 **Karthik Bommisetty** | UIC MBA (Finance) + MS Business Analytics
 [LinkedIn](https://www.linkedin.com/in/karthik-bommisetty) · [Portfolio](https://karthikvenkata-create.github.io)
 
+[![Chat with the AI analyst](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://karthik-hedging-analyst.streamlit.app) **[Chat with the AI treasury analyst →](https://karthik-hedging-analyst.streamlit.app)**
+
 In Fall 2025 I played an eight-round hedging game at UIC as the risk manager of a producer selling 100,000 units of a commodity each round. Every week I decided how much output to lock in with fixed-price swaps, how much to protect with zero-cost collars (long put, short call), and how much to leave floating. If revenue fell below the bankruptcy line the firm took a $20M penalty, and if it cleared the investment hurdle it could fund a positive-NPV project.
 
 This repo rebuilds the game from my original weekly decision memos and stress-tests every position I took. A Python pipeline settles all seven rounds and checks each one against the number I wrote at the time. It then prices my collars with Black-76, runs each round's book through 10,000 simulated settlement prices, and exports everything to a multi-tab Excel audit report.
 
-On top of the pipeline sits an **AI treasury analyst built on the Claude API**. It reviews each round the way a risk desk would: it pulls my position, quotes my reasoning from the original memo, stress-tests the book, and picks and tests its own alternative hedges, with every number coming from my code rather than the model. [More below](#ai-treasury-analyst-claude).
+On top of the pipeline sits an **AI treasury analyst built on the Claude API**. It reviews each round the way a risk desk would: it pulls my position, quotes my reasoning from the original memo, stress-tests the book, and picks and tests its own alternative hedges, with every number coming from my code rather than the model. [Try it in the browser](https://karthik-hedging-analyst.streamlit.app) or [read how it works](#ai-treasury-analyst-claude).
 
 **[Download the audit report](outputs/hedging_audit_report.xlsx)**: Summary, Assumptions, Settlement, Collar Pricing, Stress Test, Vol Sensitivity.
 **[Read the AI's round-by-round reviews](outputs/ai_reviews/)**.
