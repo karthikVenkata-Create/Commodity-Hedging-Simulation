@@ -42,21 +42,33 @@ def test_no_key_turns_chat_off(monkeypatch, tmp_path):
 
 def test_question_shows_answer_tool_calls_and_guardrail(fake):
     at = st_testing.AppTest.from_file(APP, default_timeout=30).run()
-    assert len(at.button) == 4                      # example questions on an empty chat
+    assert [b.label for b in at.button] == ["What is this project about?", "Walk me through Round 1"]
     at.chat_input[0].set_value("How did Round 5 go?").run()
     assert not at.exception
     page = " ".join(m.value for m in at.markdown)
     assert "How did Round 5 go?" in page and "\\$7.02M" in page
     assert any("every dollar figure" in c.value for c in at.caption)
     assert any("get_round" in c.value for c in at.code)
-    assert len(at.button) == 0                      # examples hide once the chat starts
+    assert len(at.button) == 2                      # a typed question doesn't skip the tour
     assert at.session_state["asked"] == 1
 
 
-def test_example_button_asks_that_question(fake):
+def test_tour_moves_forward_as_questions_are_asked(fake):
     at = st_testing.AppTest.from_file(APP, default_timeout=30).run()
     at.button[0].click().run()
-    assert "Was the \\$75 call in Round 5 a mistake?" in " ".join(m.value for m in at.markdown)
+    assert "What is this project about?" in " ".join(m.value for m in at.markdown)
+    labels = [b.label for b in at.button]
+    assert labels == ["Walk me through Round 1", "Which round was his best call?"]
+    at.button[0].click().run()
+    at.button[0].click().run()
+    at.button[0].click().run()
+    assert at.button[0].label == "Was the \\$75 call in Round 5 a mistake?"
+
+
+def test_glance_numbers(fake):
+    at = st_testing.AppTest.from_file(APP, default_timeout=30).run()
+    vals = {m.label: m.value for m in at.metric}
+    assert vals["Rounds settled"] == "7" and vals["Revenue, hedged"] == "$74.7M"
 
 
 def test_visit_cap(fake):
